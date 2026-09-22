@@ -4,11 +4,7 @@ class Customer:
     self.grade = grade
     self.points = 0
  def add_points(self, amount):
-<<<<<<< HEAD
-    self.points += int(amount * 0.03) #구매 금액의 3%를 포인트로 적립
-=======
     self.points += int(amount * 0.04) #구매 금액의 4%를 포인트로 적립
->>>>>>> aef8e43 (포인트 적립률 수정)
  def get_discount_rate(self):
     if self.grade == "vip":
         return 0.1 # VIP 고객은 10% 할인
