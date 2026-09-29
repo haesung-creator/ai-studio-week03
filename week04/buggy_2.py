@@ -16,8 +16,17 @@ def load(path):
     return df
 
 def summarize(df):
-    # 단가 x 수량으로 매출액 컬럼을 만든 뒤 카테고리별 합계를 낸다
-    df["매출액"] = df["단가"] * df["수량"]        # <-- 여기가 문제의 줄
+    # FIXED: 쉼표(,) 제거 및 숫자(int) 형변환으로 문자열 반복 연산 오류 해결 (ValueError/KeyError 방지)
+    price_clean = df["price"].astype(str).str.replace(",", "").str.replace("원", "").str.strip()
+    df["price_clean"] = pd.to_numeric(price_clean, errors="coerce").fillna(0).astype(int)
+    
+    # FIXED: 수량 컬럼 정수 형변환
+    df["quantity_clean"] = pd.to_numeric(df["quantity"], errors="coerce").fillna(0).astype(int)
+
+    # FIXED: 숫자 간 곱셈으로 파생 컬럼 생성
+    df["매출액"] = df["price_clean"] * df["quantity_clean"]
+    
+    # FIXED: 실제 CSV의 영문 컬럼명 'category' 기반 그룹화
     return df.groupby("category")["매출액"].sum()
 
 if __name__ == "__main__":
