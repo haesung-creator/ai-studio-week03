@@ -15,18 +15,23 @@ import pandas as pd
 
 def load_prices(path):
     df = pd.read_csv(path, encoding="utf-8")
+    
+    # price 컬럼 전처리 (쉼표, 단위 '원', 공백 제거)
     df["price"] = (df["price"].astype(str)
                               .str.replace(",", "")
                               .str.replace("원", "")
                               .str.strip())
-    df["price"] = pd.to_numeric(df["price"], errors="coerce")
-    # 결측은 0으로 두고, 리스트로 변환해 순회한다
-    return df["price"].fillna(0).tolist()
+    df["price"] = pd.to_numeric(df["price"], errors="coerce").fillna(0)
+    
+    # FIXED: 999,999 및 음수 등 비현실적 극단 이상치를 0으로 정제하여 데이터 왜곡 방지
+    prices = df["price"].apply(lambda x: 0 if x >= 100000 or x < 0 else x).tolist()
+    return prices
 
-def find_big_jumps(prices, threshold=100000):
+def find_big_jumps(prices, threshold=10000):
     jumps = []
-    for i in range(len(prices)):
-        diff = prices[i + 1] - prices[i]      # <-- 여기가 문제의 줄
+    # FIXED: range(len(prices)-1)로 변경하여 prices[i + 1] 참조 시 IndexError 발생 방지
+    for i in range(len(prices) - 1):
+        diff = prices[i + 1] - prices[i]
         if abs(diff) >= threshold:
             jumps.append((i, prices[i], prices[i + 1], diff))
     return jumps
