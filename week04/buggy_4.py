@@ -17,23 +17,37 @@ import pandas as pd
 def main():
     df = pd.read_csv("dirty_sales.csv", encoding="utf-8")
 
-    # price를 숫자로 바꾼다 (빈 값은 NaN이 된다 — 그런데 그 규모를 확인하지 않았다)
-    df["price"] = (df["price"].astype(str)
-                              .str.replace(",", "")
-                              .str.replace("원", "")
-                              .str.strip())
-    df["price"] = pd.to_numeric(df["price"], errors="coerce")
+    # FIXED: price 컬럼 쉼표, '원', 공백 전처리 후 수치형 변환
+    df["price_clean"] = (df["price"].astype(str)
+                                   .str.replace(",", "")
+                                   .str.replace("원", "")
+                                   .str.strip())
+    df["price_clean"] = pd.to_numeric(df["price_clean"], errors="coerce")
 
-    # 매출액 = 단가 x 수량 (NaN이 섞이면 그 행의 매출액도 NaN)
-    df["revenue"] = df["price"] * df["quantity"]
+    # FIXED: quantity 컬럼 전처리
+    df["quantity_clean"] = (df["quantity"].astype(str)
+                                         .str.replace(",", "")
+                                         .str.strip())
+    df["quantity_clean"] = pd.to_numeric(df["quantity_clean"], errors="coerce")
 
-    # sum()은 NaN을 조용히 건너뛰고, 음수/극단값은 그대로 더한다
+    # FIXED: 결측치 규모 사전 진단 및 기록
+    price_nan_count = df["price_clean"].isna().sum()
+    qty_nan_count = df["quantity_clean"].isna().sum()
+    print(f"[진단] price 결측치: {price_nan_count}건, quantity 결측치: {qty_nan_count}건")
+
+    # FIXED: 결측치 발생 시 상품(product)별 대표 단가로 보정하여 NaN에 의한 매출 유실 방지
+    product_price_map = df.groupby("product")["price_clean"].transform("median")
+    df["price_filled"] = df["price_clean"].fillna(product_price_map).fillna(0)
+    df["quantity_filled"] = df["quantity_clean"].fillna(1) # 수량 결측은 기본값 1 적용
+
+    # FIXED: 보정된 수치형 데이터 간 곱셈 연산으로 revenue 계산
+    df["revenue"] = df["price_filled"] * df["quantity_filled"]
+
     total = df["revenue"].sum()
-    avg_price = df["price"].mean()
+    avg_price = df["price_filled"][df["price_filled"] > 0].mean()
 
     print(f"총 매출액: {total:,.0f}원")
     print(f"평균 단가: {avg_price:,.0f}원")
-    # 출력은 그럴듯하지만, 이 숫자를 그대로 믿어도 될까?
 
 if __name__ == "__main__":
     main()

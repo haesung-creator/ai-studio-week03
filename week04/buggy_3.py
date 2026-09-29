@@ -14,18 +14,27 @@ import pandas as pd
 
 def load_and_clean(path):
     df = pd.read_csv(path, encoding="utf-8")
-    # price 컬럼을 숫자로 정제
+    
+    # price 컬럼 숫자로 정제
     df["price"] = (df["price"].astype(str)
                               .str.replace(",", "")
                               .str.replace("원", "")
                               .str.strip())
-    df["price"] = pd.to_numeric(df["price"], errors="coerce")
+    df["price"] = pd.to_numeric(df["price"], errors="coerce").fillna(0)
+    
+    # FIXED: quantity 컬럼 쉼표/공백 전처리, 수치형 변환 및 결측치 보정
+    qty_clean = df["quantity"].astype(str).str.replace(",", "").str.strip()
+    df["quantity"] = pd.to_numeric(qty_clean, errors="coerce").fillna(0)
+    
     df["revenue"] = df["price"] * df["quantity"]
-    # (여기서 정제된 df를 돌려주려고 했는데...)   <-- 무언가 빠져 있다
+    
+    # FIXED: AttributeError(NoneType) 전파 원인 해결 - 정제된 데이터프레임(df) 반환 구문 추가
+    return df
 
 def main():
     df = load_and_clean("dirty_sales.csv")
-    result = df.groupby("category")["revenue"].sum()   # <-- 여기서 죽는다
+    # FIXED: load_and_clean에서 정상 df가 반환되어 groupby() 정상 실행 가능
+    result = df.groupby("category")["revenue"].sum()
     print(result)
 
 if __name__ == "__main__":
