@@ -41,7 +41,7 @@ def calc_total(path):
             if not raw_price or not raw_price.lstrip('-').isdigit():
                 price = normal_prices.get(product, 0)
             else:
-                # FIXED: int 형변환 및 음수 단가(-4700 등)의 절댓값(abs) 변환으로 누적 연산 오류 방지
+                # FIXED: int 형변환 및 음수 단가(-4500 등)의 절댓값(abs) 변환으로 누적 연산 오류 방지
                 price = abs(int(raw_price))
 
             qty = int(row["quantity"])
